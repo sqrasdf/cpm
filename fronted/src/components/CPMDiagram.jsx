@@ -1,4 +1,5 @@
 import React from "react";
+import ActivityTile from "./ActivityTile";
 
 function CPMDiagram({ results, positions }) {
   return (
@@ -9,27 +10,27 @@ function CPMDiagram({ results, positions }) {
           const isCritical = results.critical_path.includes(activity.name);
           const { x, y } = positions[activity.name];
 
+          // return ActivityTile(activity, isCritical, x, y);
+
           return (
-            <div
+            <ActivityTile
               key={activity.name}
-              className={`activity-box ${isCritical ? "critical" : ""}`}
-              style={{ left: `${x}px`, top: `${y}px`, zIndex: 0 }}
-            >
-              <div className="activity-name">{activity.name}</div>
-              <div className="activity-duration">{activity.duration}</div>
-              <div className="activity-times">
-                <div>ES: {activity.early_start}</div>
-                <div>EF: {activity.early_finish}</div>
-                <div>LS: {activity.late_start}</div>
-                <div>LF: {activity.late_finish}</div>
-              </div>
-              <div className="activity-slack">Slack: {activity.slack}</div>
-            </div>
+              activity={activity}
+              isCritical={isCritical}
+              x={x}
+              y={y}
+            ></ActivityTile>
           );
         })}
       </div>
 
-      <svg className="connections-svg" width="100%" height="500">
+      {/* <svg className="connections-svg" width="100%" height="500"> */}
+      <svg
+        className="connections-svg"
+        width="100%"
+        height="100%"
+        overflow="visible"
+      >
         {results.activities.map((activity) => {
           if (!activity.predecessors || !positions[activity.name]) return null;
 
@@ -42,9 +43,9 @@ function CPMDiagram({ results, positions }) {
             // const endY = positions[activity.name].y;
 
             const startX = positions[pred].x + 150 + 20 + 4;
-            const startY = positions[pred].y + 75 + 10;
+            const startY = positions[pred].y + 75;
             const endX = positions[activity.name].x;
-            const endY = positions[activity.name].y + 75 + 10;
+            const endY = positions[activity.name].y + 75;
 
             return (
               <line

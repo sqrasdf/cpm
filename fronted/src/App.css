@@ -130,7 +130,8 @@ th {
 
 .diagram-container {
   position: relative;
-  height: 600px;
+  height: 700px;
+  /* min-height: 200px; */
   margin-top: 20px;
   overflow: auto;
   border: 1px solid #ddd;

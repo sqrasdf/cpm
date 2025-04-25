@@ -2,6 +2,10 @@
 import React, { useState } from "react";
 import "./App.css";
 
+import ActivityInputRow from "./components/ActivityInputRow";
+import ActivityTable from "./components/ActivityTable";
+import CPMDiagram from "./components/CPMDiagram";
+
 function App() {
   const [activities, setActivities] = useState([
     { name: "", predecessors: "", duration: "" },
@@ -58,32 +62,62 @@ function App() {
     }
   };
 
-  // Funkcja do generowania pozycji dla diagramu
   const generatePositions = () => {
     if (!results) return {};
 
     const positions = {};
-    const columns = {};
-    let maxColumn = 0;
-
-    // Przypisz aktywności do kolumn na podstawie early_start
-    results.activities.forEach((activity) => {
-      const column = activity.early_start;
-      if (!columns[column]) {
-        columns[column] = [];
-        if (column > maxColumn) maxColumn = column;
-      }
-      columns[column].push(activity);
+    const nameToActivity = {};
+    results.activities.forEach((a) => {
+      nameToActivity[a.name] = a;
     });
 
-    // Oblicz pozycje dla każdej aktywności
-    Object.keys(columns).forEach((col) => {
-      const colActivities = columns[col];
-      colActivities.forEach((activity, row) => {
-        positions[activity.name] = {
-          x: 100 + parseInt(col) * 200,
-          y: 100 + row * 120,
-          column: parseInt(col),
+    const visited = {};
+    const levels = {};
+
+    // Rekurencyjnie znajdź poziom (kolumnę) dla aktywności
+    const getLevel = (activityName) => {
+      if (levels[activityName] !== undefined) {
+        return levels[activityName];
+      }
+
+      const activity = nameToActivity[activityName];
+      if (
+        !activity ||
+        !activity.predecessors ||
+        activity.predecessors.length === 0
+      ) {
+        levels[activityName] = 0;
+        return 0;
+      }
+
+      const predLevels = activity.predecessors.map((pred) => getLevel(pred));
+      const maxPredLevel = Math.max(...predLevels);
+
+      levels[activityName] = maxPredLevel + 1;
+      return levels[activityName];
+    };
+
+    // Oblicz poziomy dla wszystkich aktywności
+    results.activities.forEach((a) => {
+      getLevel(a.name);
+    });
+
+    // Grupuj aktywności według poziomu
+    const columns = {};
+    for (const [name, level] of Object.entries(levels)) {
+      if (!columns[level]) {
+        columns[level] = [];
+      }
+      columns[level].push(name);
+    }
+
+    // Wyznacz pozycje
+    Object.entries(columns).forEach(([level, names]) => {
+      names.forEach((name, row) => {
+        positions[name] = {
+          x: 100 + parseInt(level) * 200,
+          y: 100 + row * 200,
+          column: parseInt(level),
           row: row,
         };
       });
@@ -101,44 +135,14 @@ function App() {
       <form onSubmit={handleSubmit}>
         <div className="activities-container">
           {activities.map((activity, index) => (
-            <div key={index} className="activity-row">
-              <input
-                type="text"
-                placeholder="Activity name"
-                value={activity.name}
-                onChange={(e) =>
-                  handleActivityChange(index, "name", e.target.value)
-                }
-                required
-              />
-              <input
-                type="text"
-                placeholder="Predecessors (comma separated)"
-                value={activity.predecessors}
-                onChange={(e) =>
-                  handleActivityChange(index, "predecessors", e.target.value)
-                }
-              />
-              <input
-                type="number"
-                placeholder="Duration"
-                value={activity.duration}
-                onChange={(e) =>
-                  handleActivityChange(index, "duration", e.target.value)
-                }
-                min="1"
-                required
-              />
-              {activities.length > 1 && (
-                <button
-                  type="button"
-                  className="remove-btn"
-                  onClick={() => handleRemoveActivity(index)}
-                >
-                  Remove
-                </button>
-              )}
-            </div>
+            <ActivityInputRow
+              key={index}
+              index={index}
+              activity={activity}
+              onChange={handleActivityChange}
+              onRemove={handleRemoveActivity}
+              canRemove={activities.length > 1}
+            />
           ))}
         </div>
 
@@ -153,7 +157,7 @@ function App() {
       {error && <div className="error">{error}</div>}
 
       {results && (
-        <div className="results">
+        <>
           <h2>Results</h2>
           <p>
             <strong>Project Duration:</strong> {results.project_duration}
@@ -161,113 +165,10 @@ function App() {
           <p>
             <strong>Critical Path:</strong> {results.critical_path.join(" → ")}
           </p>
-
-          <h3>Activity Details</h3>
-          <table>
-            <thead>
-              <tr>
-                <th>Activity</th>
-                <th>Early Start</th>
-                <th>Duration</th>
-                <th>Early Finish</th>
-                <th>Late Start</th>
-                <th>Slack</th>
-                <th>Late Finish</th>
-              </tr>
-            </thead>
-            <tbody>
-              {results.activities.map((activity, index) => (
-                <tr key={index}>
-                  <td>{activity.name}</td>
-                  <td>{activity.early_start}</td>
-                  <td>{activity.duration}</td>
-                  <td>{activity.early_finish}</td>
-                  <td>{activity.late_start}</td>
-                  <td>{activity.slack}</td>
-                  <td>{activity.late_finish}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          <h3>Diagram</h3>
-          <div className="diagram-container">
-            <svg className="connections-svg" width="100%" height="500">
-              {results.activities.map((activity) => {
-                if (!activity.predecessors || !positions[activity.name])
-                  return null;
-
-                return activity.predecessors.map((pred) => {
-                  if (!positions[pred]) return null;
-
-                  const startX = positions[pred].x + 75;
-                  const startY = positions[pred].y + 50;
-                  const endX = positions[activity.name].x + 75;
-                  const endY = positions[activity.name].y;
-
-                  return (
-                    <line
-                      key={`${pred}-${activity.name}`}
-                      x1={startX}
-                      y1={startY}
-                      x2={endX}
-                      y2={endY}
-                      stroke="#333"
-                      strokeWidth="2"
-                      markerEnd="url(#arrowhead)"
-                    />
-                  );
-                });
-              })}
-              <defs>
-                <marker
-                  id="arrowhead"
-                  markerWidth="10"
-                  markerHeight="7"
-                  refX="9"
-                  refY="3.5"
-                  orient="auto"
-                >
-                  <polygon points="0 0, 10 3.5, 0 7" fill="#333" />
-                </marker>
-              </defs>
-            </svg>
-
-            <div className="diagram">
-              {results.activities.map((activity) => {
-                if (!positions[activity.name]) return null;
-                const isCritical = results.critical_path.includes(
-                  activity.name
-                );
-                const { x, y } = positions[activity.name];
-
-                return (
-                  <div
-                    key={activity.name}
-                    className={`activity-box ${isCritical ? "critical" : ""}`}
-                    style={{
-                      left: `${x}px`,
-                      top: `${y}px`,
-                      zIndex: 10,
-                    }}
-                  >
-                    <div className="activity-name">{activity.name}</div>
-                    <div className="activity-duration">{activity.duration}</div>
-                    <div className="activity-times">
-                      <div>ES: {activity.early_start}</div>
-                      <div>EF: {activity.early_finish}</div>
-                      <div>LS: {activity.late_start}</div>
-                      <div>LF: {activity.late_finish}</div>
-                    </div>
-                    <div className="activity-slack">
-                      Slack: {activity.slack}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+          <ActivityTable activities={results.activities} />
+          <h2>CPM Diagram</h2>
+          <CPMDiagram results={results} positions={positions} />
+        </>
       )}
     </div>
   );
