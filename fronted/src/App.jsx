@@ -5,6 +5,7 @@ import "./App.css";
 import ActivityInputRow from "./components/ActivityInputRow";
 import ActivityTable from "./components/ActivityTable";
 import CPMDiagram from "./components/CPMDiagram";
+import GanttChart from "./components/GanttChart";
 
 function App() {
   const [activities, setActivities] = useState([
@@ -127,6 +128,7 @@ function App() {
   };
 
   const positions = generatePositions();
+  // console.log(positions);
 
   return (
     <div className="app">
@@ -168,6 +170,11 @@ function App() {
           <ActivityTable activities={results.activities} />
           <h2>CPM Diagram</h2>
           <CPMDiagram results={results} positions={positions} />
+          <h2>Gantt Chart</h2>
+          <GanttChart
+            activities={results.activities}
+            criticalPath={results.critical_path}
+          />
         </>
       )}
     </div>

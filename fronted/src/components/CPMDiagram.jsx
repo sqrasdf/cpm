@@ -10,8 +10,6 @@ function CPMDiagram({ results, positions }) {
           const isCritical = results.critical_path.includes(activity.name);
           const { x, y } = positions[activity.name];
 
-          // return ActivityTile(activity, isCritical, x, y);
-
           return (
             <ActivityTile
               key={activity.name}
@@ -36,11 +34,6 @@ function CPMDiagram({ results, positions }) {
 
           return activity.predecessors.map((pred) => {
             if (!positions[pred]) return null;
-
-            // const startX = positions[pred].x + 75; // startowe, wygenerowane przez deepseeka
-            // const startY = positions[pred].y + 50;
-            // const endX = positions[activity.name].x + 75;
-            // const endY = positions[activity.name].y;
 
             const startX = positions[pred].x + 150 + 20 + 4;
             const startY = positions[pred].y + 75;

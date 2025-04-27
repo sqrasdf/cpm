@@ -65,27 +65,7 @@ def calculate_cpm(activities):
         'project_duration': project_duration
     }
 
-# @app.route('/cpm', methods=['POST'])
-# def cpm():
-#     data = request.json
-#     activities = []
-    
-#     for item in data:
-#         # Zmienione - teraz oczekujemy listy poprzedników
-#         predecessors = item['predecessors'] if isinstance(item['predecessors'], list) else (
-#             [p.strip() for p in item['predecessors'].split(',')] if item['predecessors'] else []
-#         )
-#         activities.append(Activity(
-#             name=item['name'],
-#             duration=int(item['duration']),
-#             predecessors=predecessors
-#         ))
-    
-#     result = calculate_cpm(activities)
-#     return jsonify(result)
 
-# if __name__ == '__main__':
-#     app.run(debug=True)
 
 @app.route('/cpm', methods=['POST'])
 def cpm():
@@ -113,7 +93,6 @@ def cpm():
         if not a.predecessors:
             a.predecessors = ['START']
 
-    # Aktywności końcowe: takie, które nie są poprzednikami innych
     terminal_activities = all_names - all_predecessors
 
     # Dodaj END jako zależny od terminalnych aktywności
@@ -130,7 +109,6 @@ def cpm():
         predecessors=[]
     ))
 
-    # Przekaz do funkcji CPM
     result = calculate_cpm(activities)
     return jsonify(result)
 
